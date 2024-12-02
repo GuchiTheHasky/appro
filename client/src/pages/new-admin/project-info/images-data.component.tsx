@@ -28,6 +28,16 @@ export const ImageData: FC<ProjectProps> = ({mode, projectDto, dispatch}) => {
         }
     }, [savedMainImage]);
 
+    useEffect(() => {
+        if (savedPhotos) {
+            const { photos } = projectDto
+            dispatch({
+                type: 'photos',
+                payload: photos ? [...photos, ...savedPhotos] : savedPhotos
+            })
+        }
+    }, [savedPhotos])
+
     const handleImagesChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         saveImages({images: event.target.files , type: 'image'})
     }
@@ -51,6 +61,18 @@ export const ImageData: FC<ProjectProps> = ({mode, projectDto, dispatch}) => {
         dispatch({type: 'mainImage', payload: null});
     }
 
+    const handlePhotosChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        savePhotos({ images: event.target.files, type: 'photo' })
+    }
+
+    const handlePhotoRemove = (photoSrc: string) => {
+        const photos = projectDto.photos
+
+        if (photos) {
+            const newPhotos = photos.filter((i: ImageInfo) => i.path !== photoSrc)
+            dispatch({ type: 'photos', payload: newPhotos })
+        }
+    }
 
     return (
         <Grid container>
@@ -82,21 +104,25 @@ export const ImageData: FC<ProjectProps> = ({mode, projectDto, dispatch}) => {
                     handleRemoveImage={handleImageRemove}
                 />
             </Grid>
-            {/*{*/}
-            {/*    state.projectConfig?.isFinished && (*/}
-            {/*        <Grid item xs={12}>*/}
-            {/*            <ProjectImage*/}
-            {/*                images={addNew ? null : state.photos.map((i: any) => i.path)}*/}
-            {/*                title={'Загрузить фото готового проекта'}*/}
-            {/*                required={false}*/}
-            {/*                multiple={true}*/}
-            {/*                disabled={view}*/}
-            {/*                handleAddImage={handlePhotosChange}*/}
-            {/*                handleRemoveImage={handlePhotoRemove}*/}
-            {/*            />*/}
-            {/*        </Grid>*/}
-            {/*    )*/}
-            {/*}*/}
+            {projectDto.isFinished && (
+                <>
+                    <Grid item xs={12}>
+                        <Typography>Фото проекту</Typography>
+                    </Grid>
+                    <Divider />
+                    <Grid item xs={12}>
+                        <ProjectImage
+                            images={addNew ? null : projectDto.photos.map((i: any) => i.path)}
+                            title={'Загрузить фото готового проекта'}
+                            required={false}
+                            multiple={true}
+                            disabled={view}
+                            handleAddImage={handlePhotosChange}
+                            handleRemoveImage={handlePhotoRemove}
+                        />
+                    </Grid>
+                </>
+            )}
         </Grid>)
 }
 
