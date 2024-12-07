@@ -11,9 +11,9 @@ export const ImageData: FC<ProjectProps> = ({mode, projectDto, dispatch}) => {
     const view = mode === 'view';
     const addNew = false;
 
-    const {mutate: saveImages, data: savedImages} = useSaveImages();
-    const {mutate: saveMainImage, data: savedMainImage} = useSaveImages();
-    const {mutate: savePhotos, data: savedPhotos} = useSaveImages();
+    const {mutate: saveImages, data: savedImages, isPending: imagesLoading} = useSaveImages();
+    const {mutate: saveMainImage, data: savedMainImage, isPending: mainImageLoading} = useSaveImages();
+    const {mutate: savePhotos, data: savedPhotos, isPending: photoLoading} = useSaveImages();
 
     useEffect(() => {
         if (savedImages) {
@@ -27,6 +27,16 @@ export const ImageData: FC<ProjectProps> = ({mode, projectDto, dispatch}) => {
             dispatch({type: 'mainImage', payload: savedMainImage[0]});
         }
     }, [savedMainImage]);
+
+    useEffect(() => {
+        if (savedPhotos) {
+            const { photos } = projectDto
+            dispatch({
+                type: 'photos',
+                payload: photos ? [...photos, ...savedPhotos] : savedPhotos
+            })
+        }
+    }, [savedPhotos])
 
     const handleImagesChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         saveImages({images: event.target.files , type: 'image'})
@@ -51,70 +61,85 @@ export const ImageData: FC<ProjectProps> = ({mode, projectDto, dispatch}) => {
         dispatch({type: 'mainImage', payload: null});
     }
 
+    const handlePhotosChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        savePhotos({ images: event.target.files, type: 'photo' })
+    }
+
+    const handlePhotoRemove = (photoSrc: string) => {
+        const photos = projectDto.photos
+
+        if (photos) {
+            const newPhotos = photos.filter((i: ImageInfo) => i.path !== photoSrc)
+            dispatch({ type: 'photos', payload: newPhotos })
+        }
+    }
 
     return (
-        <Grid container>
+        <Grid container spacing={3}>
             <Grid item xs={12}>
-                <Typography>Основне зображення</Typography>
+                <Typography variant={'h5'}>Основне зображення</Typography>
                 <ProjectImage
                     images={projectDto.mainImage ? [projectDto.mainImage.path] : null}
-                    title={'Загрузить основное изображения проекта'}
+                    title={'Завантажити'}
                     isMain={true}
                     required={true}
                     disabled={view}
                     handleAddImage={handleMainImageChange}
                     handleRemoveImage={handleMainImageRemove}
+                    isLoading={mainImageLoading}
                 />
             </Grid>
+            {/* <Divider/> */}
             <Grid item xs={12}>
-                <Typography>Зображення проекту</Typography>
-                {/*{ListImage(state.images ? state.images.map((i: any) => i.path) : [], view, handleImageRemove)}*/}
-            </Grid>
-            <Divider/>
-            <Grid item xs={12}>
+                <Typography variant={'h5'}>Зображення проекту</Typography>
                 <ProjectImage
                     images={addNew ? null : projectDto.images.map((i: any) => i.path)}
-                    title={'Загрузить изображения проекта'}
+                    title={'Завантажити'}
                     required={true}
                     multiple={true}
                     disabled={view}
                     handleAddImage={handleImagesChange}
                     handleRemoveImage={handleImageRemove}
+                    isLoading={imagesLoading}
                 />
             </Grid>
-            {/*{*/}
-            {/*    state.projectConfig?.isFinished && (*/}
-            {/*        <Grid item xs={12}>*/}
-            {/*            <ProjectImage*/}
-            {/*                images={addNew ? null : state.photos.map((i: any) => i.path)}*/}
-            {/*                title={'Загрузить фото готового проекта'}*/}
-            {/*                required={false}*/}
-            {/*                multiple={true}*/}
-            {/*                disabled={view}*/}
-            {/*                handleAddImage={handlePhotosChange}*/}
-            {/*                handleRemoveImage={handlePhotoRemove}*/}
-            {/*            />*/}
-            {/*        </Grid>*/}
-            {/*    )*/}
-            {/*}*/}
+            {projectDto.isFinished && (
+                <>
+                    <Divider />
+                    <Grid item xs={12}>
+                        <Typography variant={'h5'} >Фото готового проекту</Typography>
+                        <ProjectImage
+                            images={addNew ? null : projectDto.photos.map((i: any) => i.path)}
+                            title={'Завантажити'}
+                            required={false}
+                            multiple={true}
+                            disabled={view}
+                            handleAddImage={handlePhotosChange}
+                            handleRemoveImage={handlePhotoRemove}
+                            isLoading={photoLoading}
+                        />
+                    </Grid>
+                </>
+            )}
         </Grid>)
 }
 
 
-interface Props {
+interface ProjectImageProps {
     images: string[] | null | undefined;
     title: string;
     required?: boolean;
     multiple?: boolean;
     disabled?: boolean;
     isMain?: boolean;
+    isLoading?: boolean;
 
     handleAddImage(event: React.ChangeEvent<any>): void;
 
     handleRemoveImage(id: string | number): void;
 }
 
-const ProjectImage = ({
+const ProjectImage: FC<ProjectImageProps> = ({
                           images,
                           title,
                           required,
@@ -122,8 +147,9 @@ const ProjectImage = ({
                           disabled,
                           isMain,
                           handleAddImage,
-                          handleRemoveImage
-                      }: Props) => {
+                          handleRemoveImage,
+                          isLoading
+                      }) => {
     if (images && isMain) {
         return ListImage(images, disabled, handleRemoveImage)
     }
@@ -135,6 +161,7 @@ const ProjectImage = ({
                 disabled={disabled}
                 multiple={multiple}
                 handleProperty={handleAddImage}
+                isLoading={isLoading}
             />
             {images && ListImage(images, disabled, handleRemoveImage)}
 
